@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, FormEvent } from "react"
 import dynamic from "next/dynamic"
 import ConfigSidebar from "@/components/configurator/config-sidebar"
 import type { SceneNode, ViewerHandle, LightConfig, SceneMetadata } from "@/components/configurator/viewer-3d"
@@ -67,7 +67,84 @@ const STATIC_MODELS = [
 ]
 // ----------------------------------------------------------------------
 
+const PASSWORD = "Piaggio2026!"
+
+function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
+    const [value, setValue] = useState("")
+    const [error, setError] = useState(false)
+    const [shake, setShake] = useState(false)
+
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault()
+        if (value === PASSWORD) {
+            onUnlock()
+        } else {
+            setError(true)
+            setShake(true)
+            setValue("")
+            setTimeout(() => setShake(false), 500)
+        }
+    }
+
+    return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-8 w-full max-w-sm px-6">
+                {/* Logo / titolo */}
+                <div className="flex flex-col items-center gap-2 text-center">
+                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20">
+                        <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                        </svg>
+                    </div>
+                    <h1 className="text-xl font-semibold tracking-tight">Piaggio Configurator</h1>
+                    <p className="text-sm text-muted-foreground">Inserisci la password per accedere</p>
+                </div>
+
+                {/* Form */}
+                <form
+                    onSubmit={handleSubmit}
+                    className={`w-full flex flex-col gap-3 ${shake ? "animate-[shake_0.4s_ease-in-out]" : ""}`}
+                    style={shake ? { animation: "shake 0.4s ease-in-out" } : {}}
+                >
+                    <div className="flex flex-col gap-1.5">
+                        <input
+                            type="password"
+                            autoFocus
+                            value={value}
+                            onChange={(e) => { setValue(e.target.value); setError(false) }}
+                            placeholder="Password"
+                            className={`w-full px-4 py-3 rounded-lg border bg-background text-sm outline-none transition-colors focus:ring-2 focus:ring-primary ${
+                                error ? "border-destructive focus:ring-destructive" : "border-input"
+                            }`}
+                        />
+                        {error && (
+                            <p className="text-xs text-destructive pl-1">Password errata. Riprova.</p>
+                        )}
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full py-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors active:scale-[0.98]"
+                    >
+                        Accedi
+                    </button>
+                </form>
+            </div>
+
+            <style>{`
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    20% { transform: translateX(-8px); }
+                    40% { transform: translateX(8px); }
+                    60% { transform: translateX(-6px); }
+                    80% { transform: translateX(6px); }
+                }
+            `}</style>
+        </div>
+    )
+}
+
 export default function ConfiguratorPage() {
+    const [authenticated, setAuthenticated] = useState(false)
     const viewerRef = useRef<ViewerHandle>(null)
 
     const [selectedStaticModel, setSelectedStaticModel] = useState("vespa_pbr")
@@ -239,6 +316,10 @@ export default function ConfiguratorPage() {
         setAvailableModels([])
         setAvailableLogos([])
     }, [fileMap])
+
+    if (!authenticated) {
+        return <PasswordGate onUnlock={() => setAuthenticated(true)} />
+    }
 
     return (
         <main className="flex h-screen w-screen overflow-hidden bg-background">
